@@ -1,0 +1,12 @@
+.git/
+.vercel/
+.env
+.env.*
+__pycache__/
+**/__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+tests/
+README.md
+DEPLOYMENT.md
