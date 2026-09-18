@@ -17,7 +17,7 @@ SCALE = 10**11
 def formula_mass(composition):
     return sum((ATOMS[atom]*count for atom,count in composition.items()), Decimal(0))
 
-WATER_DECIMAL = formula_mass({'H':2,'O':1})
+WATER_DECIMAL = Decimal('18.010564684')
 WATER = float(WATER_DECIMAL)
 # Residue formulas: free amino acid minus H2O.
 RESIDUE_FORMULAS = {

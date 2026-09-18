@@ -1,12 +1,7 @@
 const $ = id => document.getElementById(id);
 let last = null, inputs = null, catalog = null;
 const selectedGlycans = new Set();
-const explanations = {
-  user: 'M = glycan + Σ(monoisotopic free AA mass − 18.01056468403). All 20 amino acids use formula-derived monoisotopic masses with all published NIST isotope digits retained (11 decimal places). N and D have different masses.',
-  mono_free: 'M = Σ(monoisotopic residue masses) + free glycan mass. A free peptide includes +18.01056468403 Da water; attachment of a free glycan loses that water. Enter monoisotopic free glycan masses.',
-  mono_attached: 'M = Σ(monoisotopic residue masses) + 18.01056468403 + attached glycan mass increment. Enter monoisotopic glycan increments that already account for attachment water loss.'
-};
-const modelNames = {user: 'Monoisotopic free amino acids − H₂O per AA', mono_free: 'Monoisotopic / free glycan', mono_attached: 'Monoisotopic / attached increment'};
+const modelNames = {free: 'Free neutral glycan mass', attached: 'Attached glycan residue mass'};
 const fixed = (n, digits = 11) => Number(n).toFixed(digits);
 const signed = n => `${n >= 0 ? '+' : '−'}${fixed(Math.abs(n))}`;
 function el(tag, text, cls) {
@@ -45,13 +40,15 @@ function invalidate() {
   last = null; $('results').hidden = true; $('calculation').hidden = true;
 }
 function formula() {
-  const attached = $('mode').value === 'mono_attached';
-  $('formula').textContent = explanations[$('mode').value];
+  const attached = $('glycan_mass_type').value === 'attached';
+  const positive = $('ion_mode').value === 'positive';
+  $('formula').textContent = `Peptide neutral mass = Σ(residue masses) + 18.010564684 Da H₂O. Neutral glycopeptide = peptide + glycan${attached ? '' : ' − H₂O'}. Calculated m/z = neutral mass / z ${positive ? '+' : '−'} 1.007276466621. Target neutral mass = observed m/z × z ${positive ? '−' : '+'} z × 1.007276466621.`;
   $('library-convention').textContent = `Library values below are ${attached ? 'attached glycan mass increments' : 'free reducing glycan masses'} (monoisotopic). Library selections adjust automatically when you change the model.`;
-  $('custom-convention').textContent = `Custom masses are used exactly as entered and are not converted when you switch models. This model expects ${attached ? 'attached glycan mass increments' : 'free glycan masses'}${$('mode').value === 'user' ? '; your original formula is preserved.' : ' (monoisotopic).'} Confirm the convention with your mass source.`;
+  $('custom-convention').textContent = `Custom masses are interpreted as ${modelNames[$('glycan_mass_type').value].toLowerCase()} (monoisotopic). ${attached ? 'No attachment water is subtracted.' : 'One H₂O is subtracted on attachment.'} Switching mass type converts library selections, but does not change custom numbers.`;
   if (catalog) renderLibrary();
 }
-$('mode').onchange = formula;
+$('glycan_mass_type').onchange = formula;
+$('ion_mode').onchange = formula;
 $('form').addEventListener('input', invalidate);
 $('form').addEventListener('change', invalidate);
 for (const id of ['sequence', 'sites']) $(id).addEventListener('input', () => {
@@ -112,7 +109,7 @@ function renderAnnotations(d) {
   box.append(el('p', 'Annotations may be experimental or inferred; sequence motifs are not treated as confirmed sites.', 'hint'));
 }
 
-function glycanMass(g) { return $('mode').value === 'mono_attached' ? g.attached_mass : g.free_mass; }
+function glycanMass(g) { return $('glycan_mass_type').value === 'attached' ? g.attached_mass : g.free_mass; }
 function compositionText(g, full = false) {
   return Object.entries(g.composition).map(([s, count]) => `${count} × ${full ? catalog.sugars[s].name : s}`).join(' + ');
 }
@@ -140,7 +137,7 @@ function glycanDiagram(g, compact = false) {
     else { children[i].forEach(position); ys[i] = children[i].reduce((v, child) => v + ys[child], 0) / children[i].length; }
   }
   position(0);
-  const maxDepth = Math.max(...depths), xs = depths.map(d => 30 + (maxDepth-d)*84), width = maxDepth*84+170, height = Math.max(95, leaves*70);
+  const maxDepth = Math.max(...depths), xs = depths.map(d => 30 + (maxDepth-d)*84), width = maxDepth*84+(compact ? 60 : 170), height = Math.max(95, leaves*70);
   const svg = svgNode('svg', {viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `${g.name}, representative structure. ${compositionText(g)}.`, class: compact ? 'glycan-svg compact' : 'glycan-svg'});
   svg.append(svgNode('title', {}, `${g.name} — ${compositionText(g, true)}`));
   nodes.forEach((n, i) => {
@@ -149,10 +146,12 @@ function glycanDiagram(g, compact = false) {
     svg.append(svgNode('line', {x1: xs[i], y1: ys[i], x2: xs[p], y2: ys[p], stroke: '#879788', 'stroke-width': 1.8}));
     svg.append(svgNode('text', {x: (xs[i]+xs[p])/2, y: (ys[i]+ys[p])/2-6, 'text-anchor': 'middle', class: 'bond-label'}, n.linkage));
   });
-  svg.append(svgNode('line', {x1: xs[0]+10, y1: ys[0], x2: xs[0]+87, y2: ys[0], stroke: '#879788', 'stroke-width': 1.8}));
-  const proteinLink = g.type === 'N' ? 'β–N' : g.id === 'o_glcnac' ? 'β–O' : 'α–O';
-  svg.append(svgNode('text', {x: xs[0]+46, y: ys[0]-8, 'text-anchor': 'middle', class: 'bond-label'}, proteinLink));
-  svg.append(svgNode('text', {x: xs[0]+93, y: ys[0]+4, class: 'protein-label'}, g.type === 'N' ? 'Asn' : 'Ser/Thr'));
+  if (!compact) {
+    svg.append(svgNode('line', {x1: xs[0]+10, y1: ys[0], x2: xs[0]+87, y2: ys[0], stroke: '#879788', 'stroke-width': 1.8}));
+    const proteinLink = g.type === 'N' ? 'β–N' : g.id === 'o_glcnac' ? 'β–O' : 'α–O';
+    svg.append(svgNode('text', {x: xs[0]+46, y: ys[0]-8, 'text-anchor': 'middle', class: 'bond-label'}, proteinLink));
+    svg.append(svgNode('text', {x: xs[0]+93, y: ys[0]+4, class: 'protein-label'}, g.type === 'N' ? 'Asn' : 'Ser/Thr'));
+  }
   nodes.forEach((n,i) => { svg.append(sugarShape(n.sugar, xs[i], ys[i])); svg.append(svgNode('text', {x: xs[i], y: ys[i]+26, 'text-anchor': 'middle', class: 'sugar-label'}, n.sugar)); });
   return svg;
 }
@@ -162,14 +161,29 @@ function openStructure(g) {
   box.append(el('p', 'Representative structure; this is not a structure assignment from your measured mass.', 'hint'));
   if (g.note) box.append(el('p', g.note, 'hint'));
   const list = el('ul', undefined, 'subunit-list');
-  for (const [s,count] of Object.entries(g.composition)) list.append(el('li', `${count} × ${s} — ${catalog.sugars[s].name} (${fixed(catalog.sugars[s].residue_mass)} Da per sugar residue)`));
+  for (const [s,count] of Object.entries(g.composition)) list.append(el('li', `${count} × ${s} — ${catalog.sugars[s].name} (${fixed(catalog.sugars[s].residue_mass,4)} Da per sugar residue)`));
   box.append(list);
   box.append(el('p', `Attached increment: ${fixed(g.attached_mass)} Da. Free glycan: ${fixed(g.free_mass)} Da = attached increment + ${fixed(catalog.water)} Da H₂O.`, 'note'));
+  box.append(el('p', 'Free masses use ExPASy GlycanMass (underivatized, monoisotopic), including its reducing end. Attached increments subtract the calculation model’s water mass.', 'hint'));
+  box.append(link('ExPASy GlycanMass ↗',catalog.mass_source));
   box.append(link('Glycan family reference ↗',g.source));
   $('structure-dialog').showModal();
 }
 $('close-structure').onclick = () => $('structure-dialog').close();
 $('structure-dialog').addEventListener('click', e => { if (e.target === $('structure-dialog')) { const r = e.target.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close(); } });
+function updateLibrarySelection() {
+  $('library-count').textContent = `${selectedGlycans.size} SELECTED`;
+  $('select-all-glycans').disabled = !catalog || selectedGlycans.size === catalog.glycans.length;
+  $('clear-glycans').disabled = selectedGlycans.size === 0;
+}
+$('select-all-glycans').onclick = () => {
+  if (!catalog) return;
+  catalog.glycans.forEach(g => selectedGlycans.add(g.id));
+  invalidate(); renderLibrary();
+};
+$('clear-glycans').onclick = () => {
+  selectedGlycans.clear(); invalidate(); renderLibrary();
+};
 function renderLibrary() {
   const box = $('glycan-library');
   const openTypes = new Set([...box.querySelectorAll('details[open]')].map(d => d.dataset.type));
@@ -183,15 +197,15 @@ function renderLibrary() {
       const card = el('div',undefined,'glycan-card'), label = el('label',undefined,'glycan-select');
       const checkbox = el('input'); checkbox.type = 'checkbox'; checkbox.value = g.id; checkbox.checked = selectedGlycans.has(g.id);
       checkbox.setAttribute('aria-label', `Include ${g.name}`);
-      checkbox.onchange = () => { if (checkbox.checked) selectedGlycans.add(g.id); else selectedGlycans.delete(g.id); $('library-count').textContent = `${selectedGlycans.size} SELECTED`; };
+      checkbox.onchange = () => { if (checkbox.checked) selectedGlycans.add(g.id); else selectedGlycans.delete(g.id); updateLibrarySelection(); };
       label.append(checkbox,el('span',g.name)); card.append(label,glycanDiagram(g,true));
-      card.append(el('p',`${fixed(glycanMass(g))} Da`,'glycan-mass'),el('p',compositionText(g),'hint'));
+      card.append(el('p',`${fixed(glycanMass(g),7)} Da`,'glycan-mass'),el('p',compositionText(g),'hint'));
       card.append(button('Structure & subunit names ↗',()=>openStructure(g),'structure-button'));
       grid.append(card);
     }
     details.append(grid); box.append(details);
   }
-  $('library-count').textContent = `${selectedGlycans.size} SELECTED`;
+  updateLibrarySelection();
 }
 async function loadCatalog() {
   try {
@@ -249,17 +263,17 @@ function render() {
   const container = $('result-list'); container.replaceChildren();
   $('summary').textContent = last.candidate_count.toLocaleString()+' candidate assignments evaluated';
   last.results.forEach((result,ri) => {
-    const block = el('div',undefined,'result-block'); block.append(el('h2',`m/z ${result.mz} · charge ${result.charge}+`));
+    const block = el('div',undefined,'result-block'); block.append(el('h2',`m/z ${result.mz} · charge ${result.charge}${last.ion_mode === 'positive' ? '+' : '−'}`));
     block.append(el('p',`${result.match_count} within tolerance · neutral target ${fixed(result.target_mass)} Da${result.match_count===0 ? ' · No match within tolerance. These are the nearest alternatives.' : ''}`));
     const wrap = el('div',undefined,'table-wrap'),table=el('table'),head=el('tr');
-    for (const title of ['#','Peptide tag / position','Site','Glycan Da','Predicted m/z','Δ Da','Δ ppm','Tolerance','Calculation']) head.append(el('th',title));
+    for (const title of ['#','Peptide tag / position','Site','Glycan Da','Predicted m/z','|Δm/z|','Signed ppm','Tolerance','Calculation']) head.append(el('th',title));
     const thead=el('thead'); thead.append(head); table.append(thead); const body=el('tbody');
     result.rows.forEach((r,i) => {
       const tr=el('tr'); tr.append(el('td',String(i+1)));
       const cell=el('td'); cell.append(peptideCode(r),el('p',`${r.start}–${r.end}`)); tr.append(cell);
       tr.append(el('td',`${r.type} · ${r.site}`));
       const glycan = el('td',fixed(r.glycan)); glycan.append(el('p',r.glycan_info.names.join(' / ') || 'Custom mass', 'glycan-result-name')); tr.append(glycan);
-      for (const text of [fixed(r.predicted_mz),fixed(r.error_da),fixed(r.error_ppm,2)]) tr.append(el('td',text));
+      for (const text of [fixed(r.predicted_mz),fixed(r.absolute_delta_mz),fixed(r.error_ppm,2)]) tr.append(el('td',text));
       const state=el('td'); state.append(el('span',r.within?'Within':'Outside',r.within?'yes':'no')); tr.append(state);
       const action=el('td'); action.append(button('View calculation',()=>selectCalculation(ri,i,true),'structure-button')); tr.append(action); body.append(tr);
     });
@@ -267,7 +281,7 @@ function render() {
   });
   $('results').hidden = false;
   $('calc-measurement').replaceChildren();
-  last.results.forEach((r,i) => { const option=el('option',`${i+1}. m/z ${r.mz} · ${r.charge}+`); option.value=i; $('calc-measurement').append(option); });
+  last.results.forEach((r,i) => { const option=el('option',`${i+1}. m/z ${r.mz} · ${r.charge}${last.ion_mode === 'positive' ? '+' : '−'}`); option.value=i; $('calc-measurement').append(option); });
   selectCalculation(0,0,false); $('results').scrollIntoView({behavior:'smooth',block:'start'});
 }
 $('calc-measurement').onchange = () => selectCalculation(Number($('calc-measurement').value),0,false);
@@ -284,22 +298,21 @@ function renderCalculation(ri,ci) {
   const result=last.results[ri], r=result.rows[ci], box=$('calculation-body'); box.replaceChildren();
   if (!r) { box.append(el('p','No candidates in this peptide length range.')); return; }
   const b=r.breakdown;
-  box.append(el('p',modelNames[last.mode],'eyebrow'));
+  box.append(el('p',modelNames[last.glycan_mass_type] + ' · ' + last.ion_mode + ' ions','eyebrow'));
   const tag=el('div',undefined,'calculation-peptide'); tag.append(peptideCode(r)); box.append(tag);
   box.append(el('p',`${r.sequence.length} amino acids · positions ${r.start}–${r.end} · glycan attached at ${r.sequence[r.site-r.start]}${r.site} · ${r.within?'within':'outside'} tolerance`, 'hint'));
   const metrics=el('div',undefined,'mass-metrics');
-  for (const [label,value] of [['Target neutral mass',`${fixed(result.target_mass)} Da`],['Corrected calculated mass',`${fixed(r.corrected_mass)} Da`],['Calculated − target',`${signed(r.error_da)} Da`],['Mass error',`${fixed(r.error_ppm,3)} ppm`]]) {
+  for (const [label,value] of [['Target neutral mass',`${fixed(result.target_mass)} Da`],['Calculated neutral mass',`${fixed(r.mass)} Da`],['|Δm/z|',fixed(r.absolute_delta_mz)],['Signed ppm error',`${fixed(r.error_ppm,3)} ppm`]]) {
     const metric=el('div'); metric.append(el('span',label),el('strong',value)); metrics.append(metric);
   }
   box.append(metrics,el('h3','1. Amino acids used in this peptide'));
   const wrap=el('div',undefined,'table-wrap'),table=el('table'),head=el('tr');
-  const aaLabel=last.mode==='user'?'Free AA mass':'Residue mass';
+  const aaLabel='Residue mass';
   for (const text of ['AA','Name','Count',`${aaLabel} / AA`,'H₂O subtracted / AA','Contribution (Da)']) head.append(el('th',text));
   const thead=el('thead'); thead.append(head); table.append(thead); const tbody=el('tbody');
   for (const aa of b.amino_acids) { const row=el('tr'); for (const value of [aa.aa,aa.name,aa.count,aa.input_mass_text,aa.water_per_aa_text,`${aa.count} × ${aa.residue_mass_text} = ${aa.subtotal_text}`]) row.append(el('td',String(value))); tbody.append(row); }
   table.append(tbody); wrap.append(table); box.append(wrap);
-  if (last.mode==='user') box.append(el('p',`AA total = ${fixed(b.aa_input_total)} − (${r.sequence.length} × ${fixed(last.water_mass)}) = ${fixed(b.aa_total)} Da.`, 'equation'));
-  else box.append(el('p',`Sum of residue contributions = ${fixed(b.aa_total)} Da. Residue masses already exclude one water per free amino acid.`, 'equation'));
+  box.append(el('p',`Sum of residue contributions = ${fixed(b.aa_total)} Da. No water is subtracted between residues.`, 'equation'));
   box.append(el('h3','2. Add the glycan & account for water'));
   const glycanBox=el('div',undefined,'calculation-glycan');
   glycanBox.append(el('strong',r.glycan_info.names.join(' / ') || 'Custom glycan mass'));
@@ -311,24 +324,25 @@ function renderCalculation(ri,ci) {
     glycanBox.append(el('p','These are the selected reference structures, not a unique identification from mass.','hint'));
   } else glycanBox.append(el('p','No structure was supplied for this custom mass. Mass alone cannot establish its sugar subunits or connectivity.','hint'));
   box.append(glycanBox);
-  if (last.mode==='user') box.append(el('p',`${fixed(b.aa_total)} AA contribution + ${fixed(r.glycan)} glycan = ${fixed(r.mass)} Da`, 'equation'));
-  else {
-    box.append(el('p',`Free peptide = ${fixed(b.aa_total)} residues + ${fixed(b.terminal_water)} terminal H₂O = ${fixed(b.peptide_mass)} Da.`, 'equation'));
-    box.append(el('p',`${fixed(b.peptide_mass)} peptide + ${fixed(r.glycan)} ${last.mode==='mono_free'?'free glycan':'attached increment'}${b.attachment_water ? ` − ${fixed(b.attachment_water)} attachment H₂O` : ''} = ${fixed(r.mass)} Da`, 'equation'));
-  }
+  box.append(el('p',`Peptide neutral mass = ${fixed(b.aa_total)} residues + ${fixed(b.terminal_water)} terminal H₂O = ${fixed(b.peptide_mass)} Da.`, 'equation'));
+  box.append(el('p',`Attached glycan mass = ${fixed(r.glycan)}${b.attachment_water ? ` − ${fixed(b.attachment_water)} H₂O` : ' (already attached; no water subtraction)'} = ${fixed(b.attached_glycan_mass)} Da.`, 'equation'));
+  box.append(el('p',`Neutral glycopeptide = ${fixed(b.peptide_mass)} + ${fixed(b.attached_glycan_mass)} = ${fixed(r.mass)} Da.`, 'equation'));
   box.append(el('h3','3. Compare with your measured target'));
-  box.append(el('p',`Target (unchanged) = ${result.charge} × ${result.mz} = ${fixed(result.target_mass)} Da`, 'equation'));
-  box.append(el('p',`Corrected calculated mass = ${fixed(r.mass)} − (${result.charge} × ${last.proton_mass}) = ${fixed(r.corrected_mass)} Da. The correction is applied to the calculated side only.`, 'equation'));
-  box.append(el('p',`Calculated − target = ${fixed(r.corrected_mass)} − ${fixed(result.target_mass)} = ${signed(r.error_da)} Da (${fixed(r.error_ppm,3)} ppm)`, 'equation'));
-  box.append(el('p',`Predicted m/z = ${fixed(r.mass)} / ${result.charge} − ${last.proton_mass} = ${fixed(r.predicted_mz)}. Observed m/z = ${result.mz}; difference = ${signed(r.predicted_mz-result.mz)}.`, 'equation'));
-  box.append(el('p',`Tolerance: ${inputs.tolerance} ${inputs.unit === 'Da' ? 'Da on neutral mass' : 'ppm'}. Positive error means the corrected calculated mass is heavier than the target. Displayed values are rounded; calculations use full precision.`, 'hint'));
+  const positive=last.ion_mode==='positive', sign=positive?'+':'−', inverse=positive?'−':'+';
+  box.append(el('p',`${positive?'Positive [M + zH]ᶻ⁺':'Negative [M − zH]ᶻ⁻'} · charge magnitude z = ${result.charge}`, 'hint'));
+  box.append(el('p',`Target neutral mass = ${result.mz} × ${result.charge} ${inverse} (${result.charge} × ${last.proton_mass}) = ${fixed(result.target_mass)} Da`, 'equation'));
+  box.append(el('p',`Calculated m/z = ${fixed(r.mass)} / ${result.charge} ${sign} ${last.proton_mass} = ${fixed(r.predicted_mz)}`, 'equation'));
+  box.append(el('p',`Signed Δm/z = ${fixed(r.predicted_mz)} − ${result.mz} = ${signed(r.signed_delta_mz)}. Absolute Δm/z = ${fixed(r.absolute_delta_mz)}.`, 'equation'));
+  box.append(el('p',`Signed ppm error = (${signed(r.signed_delta_mz)} / ${result.mz}) × 10⁶ = ${signed(r.error_ppm)} ppm. ΔMass (neutral) = ${signed(r.error_da)} Da.`, 'equation'));
+  box.append(el('p',`Tolerance: ${inputs.tolerance} ${inputs.unit === 'Da' ? 'Da on neutral mass' : inputs.unit === 'mz' ? 'm/z' : 'ppm'}. Positive signed error means calculated m/z is above observed m/z. Calculations use unrounded values.`, 'hint'));
+
 }
 $('download').onclick = () => {
   if (!last) return;
-  const keys=['sequence','start','end','site','type','glycan','mass','corrected_mass','predicted_mz','error_da','error_ppm','within'];
-  const totals=['aa_input_total','aa_water_loss','aa_total','terminal_water','attachment_water','peptide_mass'];
-  const config=['mode','tolerance','unit','min_length','max_length','sites','glycans_O','glycans_N'];
-  const rows=[['observed_mz','charge','target_mass',...keys,'glycan_names','glycan_ids',...totals,...config,'selected_glycans','protein_sequence']];
+  const keys=['sequence','start','end','site','type','glycan','neutral_mass','predicted_mz','absolute_delta_mz','signed_delta_mz','error_da','error_ppm','absolute_ppm_error','within'];
+  const totals=['aa_input_total','aa_water_loss','aa_total','terminal_water','attachment_water','peptide_mass','attached_glycan_mass'];
+  const config=['glycan_mass_type','ion_mode','tolerance','unit','min_length','max_length','sites','glycans_O','glycans_N'];
+  const rows=[['observed_mz','charge','target_neutral_mass',...keys,'glycan_names','glycan_ids',...totals,...config,'selected_glycans','protein_sequence']];
   for (const result of last.results) for (const r of result.rows) rows.push([result.mz,result.charge,result.target_mass,...keys.map(k=>r[k]),r.glycan_info.names.join('; '),r.glycan_info.ids.join('; '),...totals.map(k=>r.breakdown[k]),...config.map(k=>inputs[k]),last.selected_glycans.join('; '),last.sequence]);
   const quote=x=>'"'+String(x).replaceAll('"','""')+'"';
   const blob=new Blob([rows.map(r=>r.map(quote).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=el('a');

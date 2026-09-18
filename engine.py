@@ -45,8 +45,8 @@ AA_NAMES = dict(zip('ARNDCEQGHILKMFPSTWYV', [
 
 def mass_breakdown(peptide, mode, glycan):
     """Use the same residue constants as the search; keep all corrections explicit."""
-    table = FREE_DECIMAL if mode == 'user' else RESIDUE_DECIMAL
-    water_per_aa = WATER_DECIMAL if mode == 'user' else WATER_DECIMAL*0
+    table = RESIDUE_DECIMAL
+    water_per_aa = WATER_DECIMAL*0
     amino_acids = []
     for aa,count in sorted(Counter(peptide).items()):
         amino_acids.append(dict(aa=aa,name=AA_NAMES[aa],count=count,
@@ -58,23 +58,32 @@ def mass_breakdown(peptide, mode, glycan):
             subtotal_text=format(count*RESIDUE_DECIMAL[aa], ".11f")))
     input_total = float(sum(table[aa]*count for aa,count in Counter(peptide).items()))
     aa_total = sum(RESIDUE_UNITS[aa] for aa in peptide)/SCALE
-    terminal_water = WATER if mode != 'user' else 0.0
-    attachment_water = WATER if mode == 'mono_free' else 0.0
+    terminal_water = WATER
+    attachment_water = WATER if mode in ('user','mono_free','free') else 0.0
     return dict(amino_acids=amino_acids,aa_input_total=input_total,
         aa_water_loss=float(len(peptide)*water_per_aa),aa_total=aa_total,
         terminal_water=terminal_water,attachment_water=attachment_water,
         peptide_mass=aa_total+terminal_water,glycan_mass=glycan,
+        attached_glycan_mass=glycan-attachment_water,
         calculated_mass=aa_total+terminal_water+glycan-attachment_water)
 
 
 def analyze(data):
     seq = sequence(data.get('sequence', ''))
-    mode = data.get('mode', 'user')
-    if mode not in ('user','mono_free','mono_attached'):
+    legacy_mode = data.get('mode', 'mono_free')
+    if legacy_mode not in ('user','mono_free','mono_attached'):
         raise ValueError('Unknown mass model.')
+    glycan_mass_type = data.get('glycan_mass_type', 'attached' if legacy_mode == 'mono_attached' else 'free')
+    if glycan_mass_type not in ('free','attached'):
+        raise ValueError('Glycan mass type must be free or attached.')
+    mode = 'mono_attached' if glycan_mass_type == 'attached' else 'mono_free'
+    ion_mode = data.get('ion_mode', 'positive')
+    if ion_mode not in ('positive','negative'):
+        raise ValueError('Ion mode must be positive or negative.')
+    ion_sign = 1 if ion_mode == 'positive' else -1
     unit = data.get('unit','ppm')
-    if unit not in ('ppm','Da'):
-        raise ValueError('Tolerance must be ppm or neutral-mass Da.')
+    if unit not in ('ppm','Da','mz'):
+        raise ValueError('Tolerance must be ppm, m/z, or neutral-mass Da.')
     tolerance = positive(data.get('tolerance',20), 'Tolerance')
     lo = integer(data.get('min_length',1), 'Minimum length',10000)
     hi = integer(data.get('max_length',60), 'Maximum length',10000)
@@ -105,6 +114,8 @@ def analyze(data):
         custom = set(positive(x,kind+' glycan mass') for x in values if x)
         if len(custom) > 20:
             raise ValueError('Use at most 20 custom glycan masses per type.')
+        if glycan_mass_type == 'free' and any(value <= WATER for value in custom):
+            raise ValueError('Free glycan mass must exceed the attachment water mass.')
         masses = set(custom)
         for value in custom:
             glycan_info[(kind,value)] = dict(ids=[],names=[],custom=True)
@@ -126,7 +137,9 @@ def analyze(data):
         if len(p) != 2:
             raise ValueError('Measurements require m/z,charge per line (no header).')
         mz,z = positive(p[0],'m/z'), integer(p[1],'Charge',100)
-        target = z*mz
+        target = z*mz-ion_sign*z*PROTON
+        if target <= 0:
+            raise ValueError('Observed m/z and charge must give a positive neutral mass.')
         observations.append((mz,z,target))
     if not 1 <= len(observations) <= 100:
         raise ValueError('Enter between 1 and 100 measurements.')
@@ -149,21 +162,25 @@ def analyze(data):
     masses = [c[0] for c in candidates]
     results = []
     for mz,z,target in observations:
-        window = target*tolerance/1e6 if unit == 'ppm' else tolerance
-        # Candidates are stored as raw peptide + glycan masses. Translate the
-        # lookup center to that space; the input target itself stays unchanged.
-        center = target+z*PROTON
+        window = mz*z*tolerance/1e6 if unit == 'ppm' else tolerance*z if unit == 'mz' else tolerance
+        center = target
         left = bisect.bisect_left(masses,center-window)
         right = bisect.bisect_right(masses,center+window)
         middle = bisect.bisect_left(masses,center)
         nearest = sorted(candidates[max(0,middle-25):middle+25],key=lambda c:(abs(c[0]-center),c))[:25]
         rows = []
         for mass,start,end,pos,kind,glycan in nearest:
-            corrected_mass = mass-z*PROTON
-            delta = corrected_mass-target
-            rows.append(dict(sequence=seq[start:end],start=start+1,end=end,site=pos,type=kind,glycan=glycan,mass=mass,corrected_mass=corrected_mass,predicted_mz=mass/z-PROTON,error_da=delta,error_ppm=delta/target*1e6,within=abs(delta)<=window,
-                             glycan_info=glycan_info[(kind,glycan)],breakdown=mass_breakdown(seq[start:end],mode,glycan)))
-        results.append(dict(mz=mz,charge=z,target_mass=target,match_count=right-left,rows=rows))
+            predicted_mz = mass/z+ion_sign*PROTON
+            delta_mz = predicted_mz-mz
+            delta_mass = mass-target
+            rows.append(dict(sequence=seq[start:end],start=start+1,end=end,site=pos,type=kind,
+                glycan=glycan,mass=mass,neutral_mass=mass,predicted_mz=predicted_mz,
+                signed_delta_mz=delta_mz,absolute_delta_mz=abs(delta_mz),
+                error_da=delta_mass,error_ppm=delta_mz/mz*1e6,absolute_ppm_error=abs(delta_mz/mz*1e6),
+                within=abs(delta_mass)<=window,
+                glycan_info=glycan_info[(kind,glycan)],breakdown=mass_breakdown(seq[start:end],mode,glycan)))
+        results.append(dict(mz=mz,charge=z,target_mass=target,target_neutral_mass=target,match_count=right-left,rows=rows))
     return dict(sequence=seq,candidate_count=len(candidates),results=results,mode=mode,
+                ion_mode=ion_mode,glycan_mass_type=glycan_mass_type,
                 selected_glycans=selected,proton_mass=PROTON,water_mass=WATER,
                 aa_mass_basis="NIST isotope-derived monoisotopic masses",aa_decimal_places=11)

@@ -35,7 +35,7 @@ class DeploymentTests(unittest.TestCase):
     def test_rewritten_post_keeps_precision_and_proton_convention(self):
         mz=(MONO['S']+674.2382)/2-PROTON
         code,body=self.request('/api?route=analyze',dict(sequence='S',sites='1,O',
-            glycans_O='674.2382',observations=f'{mz},2'))
+            ion_mode='negative',glycans_O='674.2382',observations=f'{mz},2'))
         self.assertEqual(code,200)
         row=body['results'][0]['rows'][0]
         self.assertAlmostEqual(row['error_da'],0)

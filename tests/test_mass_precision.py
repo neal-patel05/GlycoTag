@@ -11,7 +11,7 @@ class PrecisionTests(unittest.TestCase):
                         'C':'103.00918495955','M':'131.04048508847',
                         'S':'87.03202840472','W':'186.07931295073'}.items():
             self.assertEqual(RESIDUE_DECIMAL[aa],Decimal(mass))
-        self.assertEqual(WATER_DECIMAL,Decimal('18.01056468403'))
+        self.assertEqual(WATER_DECIMAL,Decimal('18.010564684'))
         for aa,mass in RESIDUE_DECIMAL.items():
             self.assertEqual(Decimal(RESIDUE_UNITS[aa])/SCALE,mass)
             self.assertEqual(FREE_DECIMAL[aa]-WATER_DECIMAL,mass)
@@ -32,7 +32,7 @@ class PrecisionTests(unittest.TestCase):
             for mode in ('user','mono_free'):
                 row=analyze(dict(data,mode=mode))['results'][0]['rows'][0]
                 self.assertEqual(row['mass'],float(RESIDUE_DECIMAL['S'])+674.2382)
-                self.assertEqual(row['predicted_mz'],row['mass']/2-PROTON)
+                self.assertEqual(row['predicted_mz'],row['mass']/2+PROTON)
                 masses.append(row['mass'])
         self.assertEqual(len(set(masses)),1)
 

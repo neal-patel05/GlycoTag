@@ -126,10 +126,10 @@ An empty `git remote -v` output means no remote is configured in this local repo
 1. Click **Load serotransferrin**, paste one raw/FASTA protein sequence, or import a UniProt accession / entry ID (e.g. `P02787` or `TRFE_HUMAN`).
 2. UniProt import fills in the sequence and its annotated N/O glycosylation sites. Review the descriptions and evidence, and edit or add sites as needed, one `position,O` or `position,N` per line. Positions are 1-based in the supplied sequence, including any signal peptide.
 3. Enter measurements as `m/z,charge`, one per line, with no header. Charge is a positive integer.
-4. Set tolerance, peptide length range, and calculation model. Browse the common glycan library and select entries to search, or supply custom masses.
+4. Set tolerance, peptide length range, and calculation model. Browse the common glycan library and select entries to search, use **Select all glycans** to include all 21 O/N-linked references, or supply custom masses. **Clear selection** removes all library selections.
 5. Run the search. Use **View calculation** for any candidate to see the amino acids, water corrections, glycan contribution, target mass, and signed difference. Download the displayed candidates and calculation totals as CSV.
 
-The supplied 698-residue serotransferrin example contains S51 and N432/N491/N630. The complex/atypical annotations do not establish which glycan mass belongs to a site; both supplied N masses are evaluated at all N sites.
+The supplied 698-residue serotransferrin example contains S51 and N432/N491/N630. The complex/atypical annotations do not establish which glycan mass belongs to a site; selected N-linked masses are evaluated at all N sites.
 
 ## Automatic site import
 
@@ -141,9 +141,9 @@ Every new import replaces the prior sequence and sites. If an accession specifie
 
 The library contains 21 representative mammalian glycans: Tn, core 1/T antigen, sialyl-Tn, sialylated and disialylated core 1, core 2, disialylated extended core 2, core 3, O-GlcNAc, the trimannosyl N core, Man5, Man9, G0/G0F/G1F/G2/G2F, A2G2S1, A2G2S2, FA2G2S2, and A3G3S3. Entries have vector structure diagrams, linkage labels, named sugar subunits and counts, and reference links. Select **Structure & subunit names** to enlarge a diagram. These structures describe the library references; mass cannot uniquely identify a glycan or its isomer.
 
-Library monoisotopic masses are calculated from underivatized residue formulas in `glycans.py`. A free reducing glycan adds one water to the residue sum. Library selections automatically supply a free glycan mass for `user` / `mono_free`, or an attached increment for `mono_attached`. Isobaric library entries share a mass search while retaining all their selected names and diagrams.
+Library free glycan masses match [ExPASy GlycanMass](https://web.expasy.org/glycanmass/) with underivatized, monoisotopic settings. All 21 compositions were verified against the calculator on 2026-09-18; results are saved in `tests/fixtures/expasy-glycanmass.json`. It uses residue masses of Hex 162.0528, HexNAc 203.0794, Fuc 146.0579, and NeuAc 291.0954 Da, plus a free reducing end of 18.0105546 Da. Attached increments subtract the engine’s configured water (18.010564684 Da) from that free mass to preserve identical glycopeptide totals across models. Compact previews show sugars only; **Structure & subunit names** also shows the amino acid attachment. Library selections automatically supply a free glycan mass for `user` / `mono_free`, or an attached increment for `mono_attached`. Isobaric library entries share a mass search while retaining all their selected names and diagrams.
 
-The original five masses remain prefilled in the custom fields. Custom masses are used exactly as entered and **are not converted** when changing models. They are not assigned structures based on approximate agreement with the library. Library selections are additional to the custom values; clear custom fields to search only library entries.
+Custom fields start empty; enter, paste, or import masses as needed. Custom masses are used exactly as entered and **are not converted** when changing models. They are not assigned structures based on approximate agreement with the library. Library selections are additional to any custom values.
 
 Paste comma-/whitespace-separated custom masses or use the O/N file inputs. TXT/CSV files contain only numeric mass values separated by commas, semicolons, or whitespace, with optional first header `mass`, `mass_da`, or `mw`. Example:
 
@@ -155,19 +155,22 @@ mass
 
 Imports append unique values to the corresponding field. Invalid files leave the previous values unchanged. Files are parsed in the browser; only the resulting numbers are submitted with a search. Limit: 50 KB per file and 20 unique custom masses per type.
 
-## Mass models
+## Mass calculations
 
-Requested calculation convention: `target mass = charge × entered target m/z`, with no proton subtraction from the target. `calculated m/z = (peptide + glycan mass) / charge − 1.007276466621`. The correction is applied only on the calculated side.
+All calculations are monoisotopic. Proton mass is **1.007276466621 Da** and water mass is **18.010564684 Da**. Peptide neutral mass is the sum of amino acid residue masses plus one terminal water; no water is subtracted between residues.
 
-For comparison in Da: `corrected calculated mass = peptide + glycan mass − charge × 1.007276466621`; `error Da = corrected calculated mass − target mass`. Ppm error is `error Da / target mass × 1e6`, equivalent to comparing calculated and target m/z directly. CSV retains the raw `mass` and separately exports `corrected_mass`. This is the requested custom convention, not the standard positive-ion mass conversion.
+Choose **Free neutral glycan mass** (default) or **Attached glycan residue mass**. For free glycans, subtract one water from the supplied glycan before adding it to the peptide. For attached residue/composition masses, add the supplied mass directly without another water loss. Library selections convert automatically; custom numbers stay as entered and are interpreted according to the selected type. ExPASy library free masses retain the calculator’s reducing-end convention; library attached increments are explicitly derived as free mass minus the configured water, rather than presented as exact sums of the rounded sugar residue table.
 
-- **Monoisotopic free AA formula (default):** glycan + sum(monoisotopic free AA masses − 18.01056468403). Replaces the original rounded table in every calculation; N and D now have their distinct monoisotopic masses. The API mode name `user` is retained for compatibility.
-- **Monoisotopic, free glycan:** glycan + sum(monoisotopic residue masses). Terminal peptide water and glycosidic attachment water loss cancel.
-- **Monoisotopic, attached increment:** glycan increment + sum(monoisotopic residue masses) + 18.01056468403.
+Choose **Positive** (default) or **Negative** ion mode. Charge is always a positive integer magnitude:
 
-The supplied custom glycan numbers do not specify free-versus-attached or isotope convention. Confirm this against the source of your glycan masses. Switching mode does not convert custom inputs; it does convert library selections. All 20 amino acid masses are derived from residue formulas in `masses.py` using every published digit of the NIST 12C, 1H, 14N, 16O and 32S isotope masses. Decimal arithmetic preserves the input digits when deriving free and residue masses; integer prefix sums retain all 11 decimal places when summing amino acids. The search converts complete peptide sums to binary64 numbers for combination with glycan inputs and m/z comparison, without intermediate decimal rounding. AA values are displayed as exact decimal strings with 11 places; other numeric outputs use 11 decimal places by default. These digits reflect the source constants, not equivalent experimental accuracy.
+- Positive: calculated m/z = neutral mass / z + proton mass; target neutral mass = observed m/z × z − z × proton mass.
+- Negative: calculated m/z = neutral mass / z − proton mass; target neutral mass = observed m/z × z + z × proton mass.
 
-Every candidate contains a supplied site and exactly one selected glycan. Peptides extend before and/or after the site, retaining sequence order. No enzyme rule applies. Equal masses can give indistinguishable peptide/site assignments. Results rank by absolute neutral mass error; ppm uses observed neutral mass as denominator. Da tolerance also applies to neutral mass, not m/z. The nearest 25 assignments per measurement are shown, labeled within/outside tolerance; all in-tolerance assignments are counted. CSV exports displayed rows, protein sequence and settings.
+Results display absolute Δm/z as the main error. Signed Δm/z = calculated m/z − observed m/z; signed ppm = signed Δm/z / observed m/z × 10⁶. The calculation view separately labels ΔMass as the neutral mass difference in Da. Tolerance can be ppm, m/z, or neutral-mass Da. The closest 25 candidates are ranked by absolute error for each measurement, and all in-tolerance candidates are counted.
+
+The API accepts `glycan_mass_type: free | attached` and `ion_mode: positive | negative`. Legacy `mode` values `user` and `mono_free` map to free glycans; `mono_attached` maps to attached glycans. An explicit glycan mass type takes precedence. Legacy requests now default to positive ions; clients requiring negative ions must specify that mode. The old `corrected_mass` field is removed. `mass` / `neutral_mass` and `target_mass` / `target_neutral_mass` are neutral quantities; `error_da` is signed ΔMass. CSV includes the ion mode, glycan mass type, target neutral mass, absolute/signed Δm/z, signed/absolute ppm, and mass breakdown.
+
+AA residue constants remain formula-derived from NIST isotopes with 11 decimal places and integer prefix sums. Display precision does not imply equivalent experimental accuracy.
 
 This is candidate generation, not validated identification or site localization. It does not model multiple glycans, other modifications, disulfide bonds, adducts other than protons, isotope errors, or MS/MS spectra. N sites must be N, and O sites S/T. Atypical N sites are allowed without a sequon requirement. For other O-linked residue chemistries, the validation requires extension.
 

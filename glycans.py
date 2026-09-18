@@ -1,11 +1,20 @@
 """Representative mammalian glycans; diagrams describe references, not MS assignments.
 
-Masses: underivatized monoisotopic residue formulas. Sources and conventions are
-exposed by the catalog API. A free reducing glycan adds one water to the sum.
+Masses: ExPASy GlycanMass underivatized, monoisotopic values. Free masses
+include its reducing end; attached increments subtract the engine water mass
+so switching calculation models preserves the neutral glycopeptide mass.
 """
 from collections import Counter
 
-from masses import WATER, formula_mass
+from decimal import Decimal
+from masses import WATER, WATER_DECIMAL
+
+# GlycanMass calculator values, verified 2026-09-18. Its reducing-end value
+# differs slightly from both the linked mass table and the NIST engine water.
+EXPASY_REDUCING_END = Decimal("18.0105546")
+EXPASY_RESIDUES = dict(Gal="162.0528", Man="162.0528",
+                       GlcNAc="203.0794", GalNAc="203.0794",
+                       Fuc="146.0579", Neu5Ac="291.0954")
 SUGARS = {
     'Gal': dict(name='Galactose', formula={'C':6,'H':10,'O':5}, color='#f3cf37', shape='circle'),
     'Man': dict(name='Mannose', formula={'C':6,'H':10,'O':5}, color='#55a660', shape='circle'),
@@ -14,8 +23,8 @@ SUGARS = {
     'Fuc': dict(name='Fucose', formula={'C':6,'H':10,'O':4}, color='#e66a5d', shape='triangle'),
     'Neu5Ac': dict(name='N-acetylneuraminic acid (sialic acid)', formula={'C':11,'H':17,'N':1,'O':8}, color='#b780be', shape='diamond'),
 }
-for sugar in SUGARS.values():
-    sugar['residue_mass'] = float(formula_mass(sugar['formula']))
+for name, sugar in SUGARS.items():
+    sugar['residue_mass'] = float(EXPASY_RESIDUES[name])
 
 O_SOURCE = 'https://www.ncbi.nlm.nih.gov/books/NBK579921/'
 N_SOURCE = 'https://www.ncbi.nlm.nih.gov/books/NBK579964/'
@@ -70,9 +79,9 @@ def complex_glycan(gal=0, sialic=0, fucose=False, antennae=2):
 
 def entry(identifier, kind, name, nodes, note=''):
     counts = Counter(n['sugar'] for n in nodes)
-    mass = sum(SUGARS[s]['residue_mass']*n for s,n in counts.items())
+    free = sum(Decimal(EXPASY_RESIDUES[s])*n for s,n in counts.items()) + EXPASY_REDUCING_END
     return dict(id=identifier,type=kind,name=name,nodes=nodes,composition=dict(counts),
-                attached_mass=mass,free_mass=mass+WATER,note=note,
+                attached_mass=float(free-WATER_DECIMAL),free_mass=float(free),note=note,
                 source=O_SOURCE if kind=='O' else N_SOURCE)
 
 CATALOG = [
@@ -106,5 +115,6 @@ def model_mass(glycan, mode):
 
 def catalog_payload():
     return dict(glycans=CATALOG,sugars=SUGARS,water=WATER,
-                mass_source='https://web.expasy.org/glycomod/glycomod_masses.html',
+                mass_source='https://web.expasy.org/glycanmass/',
+                reducing_end_mass=float(EXPASY_REDUCING_END),
                 symbol_source='https://www.ncbi.nlm.nih.gov/glycans/snfg.html')

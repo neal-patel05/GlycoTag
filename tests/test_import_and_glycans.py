@@ -63,11 +63,14 @@ class GlycanTests(unittest.TestCase):
         return d
 
     def test_reference_masses(self):
-        self.assertAlmostEqual(BY_ID['o_sialyl_core1']['free_mass'],674.2382,places=4)
-        self.assertAlmostEqual(BY_ID['o_disialyl_core1']['free_mass'],965.3336,places=4)
-        self.assertAlmostEqual(BY_ID['n_a2g2s2']['free_mass'],2222.7830,places=4)
-        self.assertAlmostEqual(BY_ID['n_a3g3s3']['free_mass'],2879.0106,places=4)
-        self.assertAlmostEqual(BY_ID['o_core1']['attached_mass'],365.132196,places=5)
+        # Results submitted directly to GlycanMass on 2026-09-18 using
+        # each reference composition, underivatized / monoisotopic.
+        expected = json.loads((Path(__file__).parent/'fixtures'/'expasy-glycanmass.json').read_text())
+        self.assertEqual(set(expected), set(BY_ID))
+        for identifier, mass in expected.items():
+            with self.subTest(glycan=identifier):
+                self.assertEqual(BY_ID[identifier]['free_mass'], float(mass))
+                self.assertAlmostEqual(BY_ID[identifier]['attached_mass'] + WATER, float(mass), places=10)
 
     def test_structure_composition_and_no_double_occupancy(self):
         for g in CATALOG:
@@ -118,11 +121,9 @@ class GlycanTests(unittest.TestCase):
             self.assertEqual(sum(x['count'] for x in b['amino_acids']),len(seq))
             self.assertAlmostEqual(b['calculated_mass'],r['mass'])
             self.assertAlmostEqual(b['peptide_mass']+b['glycan_mass']-b['attachment_water'],r['mass'])
-            self.assertAlmostEqual(r['corrected_mass']-result['target_mass'],r['error_da'])
-            self.assertAlmostEqual(r['mass']/2-PROTON,r['predicted_mz'])
-            if mode=='user':
-                self.assertAlmostEqual(b['aa_input_total'],sum(FREE_AA[x] for x in seq))
-                self.assertAlmostEqual(b['aa_water_loss'],len(seq)*WATER)
-            else: self.assertAlmostEqual(b['aa_total'],sum(MONO[x] for x in seq))
+            self.assertAlmostEqual(r['mass']-result['target_mass'],r['error_da'])
+            self.assertAlmostEqual(r['mass']/2+PROTON,r['predicted_mz'])
+            self.assertEqual(b['aa_water_loss'],0)
+            self.assertAlmostEqual(b['aa_total'],sum(MONO[x] for x in seq))
 
 if __name__=='__main__': unittest.main()

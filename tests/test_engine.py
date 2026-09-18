@@ -3,7 +3,7 @@ from engine import analyze, sequence, PROTON, WATER, MONO, FREE_AA, EXAMPLE
 
 class MatchingTests(unittest.TestCase):
     def data(self, **kwargs):
-        d=dict(sequence='ASNTA',sites='2,O\n3,N',observations='500,2',glycans_O='674.2382',glycans_N='2222.7830',min_length=1,max_length=5,mode='user',tolerance=20,unit='ppm')
+        d=dict(sequence='ASNTA',sites='2,O\n3,N',observations='500,2',glycans_O='674.2382',glycans_N='2222.7830',min_length=1,max_length=5,mode='user',ion_mode='negative',tolerance=20,unit='ppm')
         d.update(kwargs)
         return d
 
@@ -49,7 +49,7 @@ class MatchingTests(unittest.TestCase):
         for s in ('>one\nAA\n>two\nSS','ASXB',''):
             with self.assertRaises(ValueError):sequence(s)
 
-    def test_proton_correction_only_on_calculated_side(self):
+    def test_negative_ion_target_neutral_mass(self):
         raw_mass = 674.2382 + FREE_AA['S'] - WATER
         for charge in (1,2,5):
             mz = raw_mass/charge - PROTON + 0.01
@@ -57,7 +57,7 @@ class MatchingTests(unittest.TestCase):
                 observations=f'{mz},{charge}',unit='Da',tolerance=0.02))['results'][0]
             row = result['rows'][0]
             self.assertEqual(result['mz'],mz)
-            self.assertEqual(result['target_mass'],mz*charge)
+            self.assertEqual(result['target_mass'],mz*charge+charge*PROTON)
             self.assertAlmostEqual(row['mass'],raw_mass)
             self.assertAlmostEqual(row['predicted_mz'],raw_mass/charge-PROTON)
             self.assertAlmostEqual(row['error_da'],-0.01*charge)
