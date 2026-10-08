@@ -1,4 +1,4 @@
-# GlycoTag
+# GlyPeptID
 
 **Live website: https://glycotag.vercel.app** · [Vercel dashboard](https://vercel.com/neals-team/glycotag)
 
@@ -52,7 +52,7 @@ On macOS, identify the process listening on the port:
 lsof -nP -iTCP:8000 -sTCP:LISTEN
 ```
 
-If it is the GlycoTag Python server you want to stop, note its `PID` and run `kill` with that number. For example, **only if the displayed PID is 12345**:
+If it is the GlyPeptID Python server you want to stop, note its `PID` and run `kill` with that number. For example, **only if the displayed PID is 12345**:
 
 ```sh
 kill 12345
@@ -131,6 +131,32 @@ An empty `git remote -v` output means no remote is configured in this local repo
 
 The supplied 698-residue serotransferrin example contains S51 and N432/N491/N630. The complex/atypical annotations do not establish which glycan mass belongs to a site; selected N-linked masses are evaluated at all N sites.
 
+## Mass spectrometer file import
+
+The interface is branded **GlyPeptID** using the supplied logo. The GitHub repository and existing Vercel project retain the name `GlycoTag` / `glycotag`.
+
+**Direct binary `.raw` analysis is not connected yet.** The RAW file picker only selects a file locally and explicitly reports that no upload or analysis occurred. It does not execute Thermo Xcalibur Qual. Xcalibur is Windows desktop software; a Windows installation and a supported integration need to be established before the app can use it. Thermo's cross-platform [RawFileReader](https://github.com/thermofisherlsms/RawFileReader) is a possible alternative, but reading stored peaks with that library is not the same as running Qual; that alternative has not been installed or enabled.
+
+To use values already reviewed in Qual now:
+
+1. Open your RAW data in Qual Browser and display a **Spectrum List** with **Mass** and **Charge** columns. Copy the table into a CSV, TSV, or TXT file, retaining column headers. A mass/intensity-only list is insufficient.
+2. Import that file under **Import a peak table from Qual**. UTF-8 and BOM-marked UTF-16 text are supported. Optional columns are `Intensity` (or `Abundance`) and `Scan` (or `Scan Number`). Metadata before the header is allowed (up to 99 lines); export one table per file.
+3. Review the preview and choose ion mode. Explicit signs such as `3+` or `2−` are retained; unsigned charges require choosing polarity. Zero, empty, and unassigned charges stay unknown and cannot be selected. Mixed-polarity tables are selected one polarity at a time.
+4. Select peaks, then **Add selected to measurements**. Existing measurements are preserved, exact duplicate m/z–charge pairs are skipped, and the total remains limited to 100 measurements. Opposite polarities cannot be appended to the same search. Run the candidate search after reviewing the resulting inputs.
+
+Example table:
+
+```csv
+m/z,Charge,Intensity,Scan
+1000.1234,3,125000,142
+805.4567,2,89000,142
+612.3456,0,4000,142
+```
+
+Tables are limited to 2 MB / 10,000 rows and displayed in pages of 50. They are sent to the site’s server for validation and preview and are not saved to disk by the app. When using the public site, Vercel processes these uploads; when running locally, they go to your local server. Values are imported as supplied; the app cannot authenticate which program produced a table and does not perform peak picking, isotope deconvolution, or charge estimation. No default charge is fabricated. The original search calculations are unchanged.
+
+Thermo's [Qual Browser guide](https://tools.thermofisher.com/content/sfs/manuals/Man-XCALI-97781-Xcalibur-40-Qual-ManXCALI97781-A-EN.pdf) explains that charge labels are available only when the instrument recorded the additional peak-label information. If no charge was recorded, the exported table will not provide a usable charge for those peaks.
+
 ## Automatic site import
 
 The importer reads UniProt's JSON glycosylation annotations, preserving descriptions and evidence codes. It includes exact N-linked sites on N and O-linked sites on S/T, including atypical N sites. Evidence may be experimental or inferred; these are database annotations, not new predictions. Uncertain locations, ranges, other linkage types, and unsupported residues are listed as skipped. Missing annotations do not prove that a protein lacks glycosylation; enter known sites manually when needed.
@@ -187,6 +213,8 @@ python3 -m unittest discover -s tests -v
 The Python tests cover reference masses, glycan model conversion, calculation totals, custom masses, isobaric references, real UniProt annotations, missing annotations, unsupported sites, and isoform handling, as well as the original search behavior. `tests/fixtures/P02787-glycosylation.json` is a reduced public UniProt record used for deterministic tests.
 
 ### Browser checks
+
+For the new peak importer, start the local app on port 8001 (`python3 app.py --port 8001`) and Chrome with remote debugging on port 9223 as described below, then run `node tests/browser_spectra.mjs`. This test uses only the local app and synthetic peak tables. It covers unknown charges, polarity, duplicate handling, pagination, measurement limits, preservation after invalid imports, candidate search from imported peaks, the logo, and mobile layout. No real instrument RAW file has been analyzed.
 
 Optional end-to-end checks require Node.js 22+ and Google Chrome. Start the local app as above. In a second terminal, start an isolated headless Chrome session on macOS:
 
