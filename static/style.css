@@ -7,6 +7,3 @@ h3{font-size:15px;margin:22px 0 10px;letter-spacing:-.2px}[hidden]{display:none!
 
 /* Supplied GlyPeptID brand artwork. */
 .brand{display:flex;align-items:center;flex-shrink:0}.brand img{display:block;width:150px;height:auto;max-height:76px;object-fit:contain}
-
-/* Instrument data import and peak review. */
-.spectra-card{border-top:3px solid #24513e}.spectra-sources>div{padding:0 16px 12px;background:#f8faf6;border:1px solid #e1e7dc;border-radius:10px}.spectra-sources .note{font-size:12px}.peak-toolbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:16px 0}.peak-toolbar label{margin:0;min-width:180px}.peak-toolbar select{display:block;margin-top:8px}.peak-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}#peak-rows input{width:18px;height:18px;accent-color:#24513e}#peak-rows tr:has(input:checked){background:#f1f6ed}#peak-status:empty{display:none}.spectra-card caption{text-align:left;padding-bottom:8px}.spectra-card input[type=file]{font-size:12px}.spectra-card p{overflow-wrap:anywhere}@media(max-width:760px){.spectra-sources{flex-direction:column}.peak-toolbar{align-items:stretch}.peak-toolbar>*{flex:1}.peak-toolbar button{white-space:normal}}
