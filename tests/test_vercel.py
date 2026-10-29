@@ -46,6 +46,17 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(self.request('/api?route=analyze',[])[0],400)
         self.assertEqual(self.request('/api/glycans')[0],200)
 
+    def test_rewrite_query_parameters_do_not_change_endpoint_matching(self):
+        for endpoint in ('glycans', 'adducts', 'example'):
+            self.assertEqual(self.request(f'/api?route={endpoint}&path={endpoint}')[0], 200)
+            self.assertEqual(self.request(f'/api/{endpoint}?extra=1')[0], 200)
+        data = dict(sequence='S', sites='1,O', glycans_O='424.1693546', observations='425.176631066621,1')
+        for endpoint in ('analyze', 'glycan-adducts'):
+            self.assertEqual(self.request(f'/api?route={endpoint}&path={endpoint}', data)[0], 200)
+        with patch('app.import_entry', return_value={'sequence':'S'}) as get:
+            self.assertEqual(self.request('/api?route=uniprot/P02787&path=uniprot/P02787')[0], 200)
+            get.assert_called_once_with('P02787')
+
     def test_hosted_response_limit_returns_clear_error(self):
         h=object.__new__(handler)
         with patch('app.Handler.send') as send:

@@ -55,27 +55,28 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200, browse(parse_qs(url.query)))
             except ValueError as exc:
                 self.send(400, dict(error=str(exc)))
-        elif self.path == '/api/adducts':
+        elif url.path == '/api/adducts':
             self.send(200, adduct_payload())
-        elif self.path == '/api/example':
+        elif url.path == '/api/example':
             self.send(200,dict(sequence=EXAMPLE))
-        elif self.path == '/api/glycans':
+        elif url.path == '/api/glycans':
             self.send(200,catalog_payload())
-        elif self.path.startswith('/api/uniprot/'):
+        elif url.path.startswith('/api/uniprot/'):
             try:
-                self.send(200,import_entry(self.path.removeprefix('/api/uniprot/')))
+                self.send(200,import_entry(url.path.removeprefix('/api/uniprot/')))
             except (URLError,TimeoutError,OSError):
                 self.send(502,dict(error='UniProt could not be reached or accession was not found. Paste the FASTA sequence instead.'))
             except (ValueError,KeyError,TypeError):
                 self.send(400,dict(error='Check the UniProt accession / entry ID, or paste the sequence and sites manually.'))
-        elif self.path in ('/','/style.css','/main.js','/glypeptid-logo.png'):
-            file,mime = {'/':('index.html','text/html'),'/style.css':('style.css','text/css'),'/main.js':('main.js','text/javascript'),'/glypeptid-logo.png':('glypeptid-logo.png','image/png')}[self.path]
+        elif url.path in ('/','/style.css','/main.js','/glypeptid-logo.png'):
+            file,mime = {'/':('index.html','text/html'),'/style.css':('style.css','text/css'),'/main.js':('main.js','text/javascript'),'/glypeptid-logo.png':('glypeptid-logo.png','image/png')}[url.path]
             self.send(200,(ROOT/'static'/file).read_bytes(),mime)
         else:
             self.send(404,dict(error='Not found'))
 
     def do_POST(self):
-        if self.path not in ('/api/analyze', '/api/glycan-adducts'):
+        path = urlsplit(self.path).path
+        if path not in ('/api/analyze', '/api/glycan-adducts'):
             return self.send(404,dict(error='Not found'))
         try:
             length = int(self.headers.get('Content-Length',0))
@@ -84,7 +85,7 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if not isinstance(data,dict):
                 raise ValueError('Expected a JSON object.')
-            analyze_request = analyze_glycan_adducts if self.path == '/api/glycan-adducts' else analyze
+            analyze_request = analyze_glycan_adducts if path == '/api/glycan-adducts' else analyze
             self.send(200,analyze_request(data))
         except (ValueError,TypeError,KeyError) as exc:
             self.send(400,dict(error=str(exc)))
