@@ -52,7 +52,7 @@ def parse_record(record):
 
 def download(path):
     with urlopen(Request('https://rest.uniprot.org/uniprotkb/'+path,
-                         headers={'User-Agent':'GlycoTag/1.1'}),timeout=20) as response:
+                         headers={'User-Agent':'GlyPeptID/1.2'}),timeout=20) as response:
         body = response.read(5000001)
     if len(body) > 5000000:
         raise ValueError('UniProt response is too large. Paste the sequence and sites manually.')

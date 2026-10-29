@@ -1,0 +1,8 @@
+{
+  "source": "https://web.expasy.org/cgi-bin/glycanmass/glycanmass.pl",
+  "verified": "2026-10-26",
+  "settings": {"mode": "underivatized", "masses": "monoisotopic"},
+  "composition": {"Hex": 1, "HexA": 1, "HexNAc": 1, "Deoxyhex": 1, "KDN": 1, "NeuAc": 1, "NeuGc": 1, "Pent": 1, "Phos": 1, "Sulph": 1},
+  "free_reducing_end": 18.0105546,
+  "free_mass": 1845.4527446
+}

@@ -1,5 +1,5 @@
 """Vercel entrypoint; shares the tested local application's API handlers."""
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlsplit, urlencode
 import json
 from app import Handler
 
@@ -14,7 +14,9 @@ class handler(Handler):
         url = urlsplit(self.path)
         # vercel.json passes the public API suffix explicitly through rewrites.
         route = parse_qs(url.query).get('route', [None])[0]
-        self.path = '/api/' + route if route is not None else url.path
+        query = parse_qs(url.query)
+        query.pop('route', None)
+        self.path = ('/api/' + route if route is not None else url.path) + ('?' + urlencode(query, doseq=True) if query else '')
 
     def do_GET(self):
         self.route()

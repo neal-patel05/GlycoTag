@@ -5,9 +5,13 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import URLError
+from urllib.parse import parse_qs, urlsplit
 from engine import analyze, EXAMPLE
 from glycans import catalog_payload
 from uniprot import import_entry
+from adducts import catalog_payload as adduct_payload
+from glycosmos import browse, structure_image, hosted_image_url, record
+from glycan_adducts import analyze_glycan_adducts
 
 ROOT = Path(__file__).resolve().parent
 class Handler(BaseHTTPRequestHandler):
@@ -17,11 +21,43 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type',content_type + ('; charset=utf-8' if content_type.startswith('text/') or content_type == 'application/json' else ''))
         self.send_header('Content-Length',str(len(raw)))
         self.send_header('X-Content-Type-Options','nosniff')
+        self.send_header('Cache-Control', 'public, max-age=86400' if content_type == 'image/png' else 'no-store')
         self.end_headers()
         self.wfile.write(raw)
 
     def do_GET(self):
-        if self.path == '/api/example':
+        url = urlsplit(self.path)
+        if url.path.startswith('/api/glycosmos/image/'):
+            try:
+                identifier = url.path.removeprefix('/api/glycosmos/image/')
+                png = structure_image(identifier)
+                remote = hosted_image_url(identifier) if png is None else None
+                if remote:
+                    self.send_response(302)
+                    self.send_header('Location', remote)
+                    self.send_header('Cache-Control', 'public, max-age=86400')
+                    self.send_header('Content-Length', '0')
+                    self.end_headers()
+                elif png is None:
+                    self.send(404,dict(error='No structure image supplied in the GlyCosmos image archive.'))
+                else:
+                    self.send(200,png,'image/png')
+            except ValueError as exc:
+                self.send(400,dict(error=str(exc)))
+        elif url.path.startswith('/api/glycosmos/record/'):
+            try:
+                glycan = record(url.path.removeprefix('/api/glycosmos/record/'))
+                self.send(200 if glycan else 404, glycan or dict(error='GlyCosmos record not found.'))
+            except ValueError as exc:
+                self.send(400, dict(error=str(exc)))
+        elif url.path == '/api/glycosmos':
+            try:
+                self.send(200, browse(parse_qs(url.query)))
+            except ValueError as exc:
+                self.send(400, dict(error=str(exc)))
+        elif self.path == '/api/adducts':
+            self.send(200, adduct_payload())
+        elif self.path == '/api/example':
             self.send(200,dict(sequence=EXAMPLE))
         elif self.path == '/api/glycans':
             self.send(200,catalog_payload())
@@ -39,7 +75,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send(404,dict(error='Not found'))
 
     def do_POST(self):
-        if self.path != '/api/analyze':
+        if self.path not in ('/api/analyze', '/api/glycan-adducts'):
             return self.send(404,dict(error='Not found'))
         try:
             length = int(self.headers.get('Content-Length',0))
@@ -48,7 +84,8 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if not isinstance(data,dict):
                 raise ValueError('Expected a JSON object.')
-            self.send(200,analyze(data))
+            analyze_request = analyze_glycan_adducts if self.path == '/api/glycan-adducts' else analyze
+            self.send(200,analyze_request(data))
         except (ValueError,TypeError,KeyError) as exc:
             self.send(400,dict(error=str(exc)))
 

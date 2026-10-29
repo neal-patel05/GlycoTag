@@ -1,4 +1,10 @@
-# Deploy GlycoTag to Vercel
+# GlyPeptID hosting
+
+Production address: **https://glypeptid.vercel.app**. Source: [neal-patel05/GlycoTag](https://github.com/neal-patel05/GlycoTag), branch `main`. The existing Vercel project was renamed from `glycotag` to `glypeptid` on 2026-10-29, preserving project ID `prj_1figRQXV9tAAlJHbTm23ZG30TsMB` and team `neals-team`. Release commit label: **new url name + adducts addition + complete glycan library**.
+
+The release includes all 257,024 catalogue records, species and N/O filters, all 46 adducts, structure references, and enforced N/O peptide-site compatibility. The 21 MB compressed catalogue and a small image-ID manifest are committed and deployed. The optional 624 MB local image archive is excluded: hosted image requests redirect to GlyCosmos's official image service. No paid storage service is required. The pre-deployment Python suite has 83 passing tests.
+
+## Historical deployment record
 
 Published and verified on September 17, 2026.
 
@@ -28,7 +34,7 @@ npx vercel login
 npx vercel --prod
 ```
 
-Select your personal Hobby scope. Create a new project named `glycotag` (or choose another available name), use the current folder, and retain the settings supplied by `vercel.json`. Framework: Other; output directory: `static`; no build command. No environment variables are required. The CLI uploads directly from this folder; Git integration is optional.
+For this existing setup, use scope `neals-team`, retain the linked project ID, and use the settings supplied by `vercel.json`. Framework override: Other; output directory: `static`; no build command. No environment variables are required. The CLI uploads directly from this folder; Git integration is optional.
 
 The resulting production alias will be a Vercel-provided HTTPS `.vercel.app` URL. Use the actual alias printed by the successful deployment, not a guessed URL. A generated preview URL may require authentication; verify that the production alias can be opened signed out. If necessary, review Project Settings → Deployment Protection and ensure the production site is public; preview protection can remain enabled.
 
@@ -37,6 +43,10 @@ The resulting production alias will be a Vercel-provided HTTPS `.vercel.app` URL
 - Open the production URL in a signed-out / private window.
 - Confirm the page, stylesheet and JavaScript load.
 - Confirm `/api/glycans` returns JSON and the 21-entry library appears.
+- Confirm `/api/glycosmos` returns 257,024 records; species `human` returns 8,016 and `bovine` returns 1,755 before linkage filtering.
+- Confirm `/api/adducts` lists 31 positive and 15 negative ions.
+- Open `/api/glycosmos/image/G00039MO` and verify the structure image loads through the official image service.
+- Verify N-linked glycans cannot be assigned to O sites, and vice versa.
 - Import `P02787`; verify S51, N432, N491 and N630.
 - Search a known peptide and confirm the amino acid precision, proton subtraction, calculation breakdown, and CSV export.
 - Verify bad input produces a useful error and that results for one visitor are not shown to another.
@@ -51,6 +61,6 @@ Search limits remain in place: 10,000 residues, 100 measurements, and a conserva
 
 ## Future changes
 
-Edit and test locally, then run `npx vercel --prod` from the same linked folder. It updates the existing project; the production alias remains stable. Keep `.vercel/` on this computer but do not commit or publish it. The Vercel dashboard shows deployment status, build logs, runtime logs, and rollback controls.
+Edit and test locally, push the reviewed changes to GitHub, then run `npx vercel --prod --scope neals-team` from the same linked folder. Verify `glypeptid.vercel.app` points to the new deployment. Keep `.vercel/` on this computer but do not commit or publish it. The Vercel dashboard shows deployment status, build logs, runtime logs, and rollback controls.
 
 References: [Python API functions](https://vercel.com/docs/functions/runtimes/python/api-directory), [CLI deployments](https://vercel.com/docs/projects/deploy-from-cli), [project configuration](https://vercel.com/docs/project-configuration/vercel-json).

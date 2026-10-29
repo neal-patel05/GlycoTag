@@ -1,10 +1,10 @@
 // Optional browser smoke test: Node 22+ and Chrome running with
-// --headless --remote-debugging-port=9223 --user-data-dir=/tmp/glycotag-browser-profile
+// --headless --remote-debugging-port=9223 --user-data-dir=/tmp/glypeptid-browser-profile
 // Start the Python app on port 8000 first. No npm packages required.
 import assert from 'node:assert/strict';
 import {writeFile} from 'node:fs/promises';
-const pages = await (await fetch('http://127.0.0.1:9223/json/list')).json();
-const target = pages.find(p=>p.type==='page');
+const debugURL = process.env.CHROME_DEBUG_URL || 'http://127.0.0.1:9223';
+const target = await (await fetch(debugURL + '/json/new?about:blank', {method:'PUT'})).json();
 const ws = new WebSocket(target.webSocketDebuggerUrl);
 await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
 let next=0; const pending=new Map(), errors=[];
@@ -16,7 +16,7 @@ async function screenshot(path){const shot=await send('Page.captureScreenshot',{
 try {
   await send('Runtime.enable');await send('Page.enable');
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1050,deviceScaleFactor:1,mobile:false});
-  await send('Page.navigate',{url:process.env.GLYCOTAG_URL || 'http://localhost:8000/'});
+  await send('Page.navigate',{url:process.env.GLYPEPTID_URL || 'http://localhost:8000/'});
   await waitFor('typeof catalog !== "undefined" && catalog !== null');
   assert.equal(await evaluate('document.querySelectorAll(".glycan-card").length'),21);
   assert.equal(await evaluate('$("glycans_O").value'), '');
@@ -44,12 +44,12 @@ try {
   assert.equal(await evaluate('$("structure-dialog").open'),true);
   assert.match(await evaluate('$("structure-content").textContent'),/N-acetylgalactosamine/);
   assert.equal(await evaluate('document.querySelector("#structure-content .protein-label").textContent'), 'Ser/Thr');
-  await screenshot('/tmp/glycotag-structure.png');
+  await screenshot('/tmp/glypeptid-structure.png');
   await evaluate('$("close-structure").click();openStructure(catalog.glycans.find(g=>g.id==="n_a3g3s3"))');
   assert.match(await evaluate('$("structure-content").textContent'),/Mannose/);
   assert.equal(await evaluate('document.querySelectorAll("#structure-content .sugar-label").length'),14);
   assert.equal(await evaluate('document.querySelector("#structure-content .protein-label").textContent'), 'Asn');
-  await screenshot('/tmp/glycotag-complex-structure.png');
+  await screenshot('/tmp/glypeptid-complex-structure.png');
   await evaluate('$("close-structure").click();document.querySelector("input[value=o_core1]").click();$("glycan_mass_type").value="attached";$("glycan_mass_type").dispatchEvent(new Event("change",{bubbles:true}))');
   assert.equal(await evaluate('document.querySelector("input[value=o_core1]").checked'),true);
   assert.match(await evaluate('document.querySelector("input[value=o_core1]").closest(".glycan-card").textContent'),/365\.1321899/);
@@ -76,7 +76,7 @@ try {
   assert.match(await evaluate('$("calculation-body").textContent'),/outside tolerance/);
   await evaluate('selectCalculation(0,0,true)');
   await new Promise(r=>setTimeout(r,500));
-  await screenshot('/tmp/glycotag-calculation.png');
+  await screenshot('/tmp/glypeptid-calculation.png');
   console.log('PASS: batch search, exact match, no-match state and per-candidate calculation.');
   await evaluate('$("select-all-glycans").click()');
   assert.equal(await evaluate('last'), null);
@@ -127,7 +127,7 @@ try {
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await evaluate('window.scrollTo(0,0)');await new Promise(r=>setTimeout(r,300));
   assert.ok(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), 'Mobile page has horizontal overflow');
-  await screenshot('/tmp/glycotag-mobile.png');
+  await screenshot('/tmp/glypeptid-mobile.png');
   assert.deepEqual(errors,[]);
   console.log('PASS: mobile layout without page overflow; no browser JavaScript exceptions.');
-} finally { ws.close(); }
+} finally { ws.close(); await fetch(debugURL + '/json/close/' + target.id); }

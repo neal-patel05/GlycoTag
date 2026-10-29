@@ -1,0 +1,376 @@
+{
+  "source": "https://fiehnlab.ucdavis.edu/staff/kind/metabolomics/ms-adduct-calculator/",
+  "spreadsheet": "https://fiehnlab.ucdavis.edu/images/files/software/ESI-MS-adducts-2020.xls",
+  "retrieved": "2026-10-26",
+  "sha256": "97c1636e8289e88fc7c486e717fd40fd9038573b5da229a2086c361cdfcce9ce",
+  "adducts": [
+    {
+      "id": "pos_1",
+      "name": "[M+3H]3+",
+      "mode": "positive",
+      "charge": 3,
+      "multimer": 1,
+      "mz_offset": 1.007276
+    },
+    {
+      "id": "pos_2",
+      "name": "[M+2H+Na]3+",
+      "mode": "positive",
+      "charge": 3,
+      "multimer": 1,
+      "mz_offset": 8.33459
+    },
+    {
+      "id": "pos_3",
+      "name": "[M+H+2Na]3+",
+      "mode": "positive",
+      "charge": 3,
+      "multimer": 1,
+      "mz_offset": 15.662453333333334
+    },
+    {
+      "id": "pos_4",
+      "name": "[M+3Na]3+",
+      "mode": "positive",
+      "charge": 3,
+      "multimer": 1,
+      "mz_offset": 22.989218
+    },
+    {
+      "id": "pos_5",
+      "name": "[M+2H]2+",
+      "mode": "positive",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": 1.007276
+    },
+    {
+      "id": "pos_6",
+      "name": "[M+H+NH4]2+",
+      "mode": "positive",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": 9.52055
+    },
+    {
+      "id": "pos_7",
+      "name": "[M+H+Na]2+",
+      "mode": "positive",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": 11.998247
+    },
+    {
+      "id": "pos_8",
+      "name": "[M+H+K]2+",
+      "mode": "positive",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": 19.985217
+    },
+    {
+      "id": "pos_9",
+      "name": "[M+ACN+2H]2+",
+      "mode": "positive",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": 21.52055
+    },
+    {
+      "id": "pos_10",
+      "name": "[M+2Na]2+",
+      "mode": "positive",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": 22.989218
+    },
+    {
+      "id": "pos_11",
+      "name": "[M+2ACN+2H]2+",
+      "mode": "positive",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": 42.033823
+    },
+    {
+      "id": "pos_12",
+      "name": "[M+3ACN+2H]2+",
+      "mode": "positive",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": 62.547097
+    },
+    {
+      "id": "pos_13",
+      "name": "[M+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 1.007276
+    },
+    {
+      "id": "pos_14",
+      "name": "[M+NH4]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 18.033823
+    },
+    {
+      "id": "pos_15",
+      "name": "[M+Na]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 22.989218
+    },
+    {
+      "id": "pos_16",
+      "name": "[M+CH3OH+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 33.033489
+    },
+    {
+      "id": "pos_17",
+      "name": "[M+K]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 38.963158
+    },
+    {
+      "id": "pos_18",
+      "name": "[M+ACN+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 42.033823
+    },
+    {
+      "id": "pos_19",
+      "name": "[M+2Na-H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 44.97116
+    },
+    {
+      "id": "pos_20",
+      "name": "[M+IsoProp+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 61.06534
+    },
+    {
+      "id": "pos_21",
+      "name": "[M+ACN+Na]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 64.015765
+    },
+    {
+      "id": "pos_22",
+      "name": "[M+2K-H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 76.91904
+    },
+    {
+      "id": "pos_23",
+      "name": "[M+DMSO+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 79.02122
+    },
+    {
+      "id": "pos_24",
+      "name": "[M+2ACN+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 83.06037
+    },
+    {
+      "id": "pos_25",
+      "name": "[M+IsoProp+Na+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 84.05511
+    },
+    {
+      "id": "pos_26",
+      "name": "[2M+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": 1.007276
+    },
+    {
+      "id": "pos_27",
+      "name": "[2M+NH4]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": 18.033823
+    },
+    {
+      "id": "pos_28",
+      "name": "[2M+Na]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": 22.989218
+    },
+    {
+      "id": "pos_29",
+      "name": "[2M+K]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": 38.963158
+    },
+    {
+      "id": "pos_30",
+      "name": "[2M+ACN+H]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": 42.033823
+    },
+    {
+      "id": "pos_31",
+      "name": "[2M+ACN+Na]+",
+      "mode": "positive",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": 64.015765
+    },
+    {
+      "id": "neg_1",
+      "name": "[M-3H]3-",
+      "mode": "negative",
+      "charge": 3,
+      "multimer": 1,
+      "mz_offset": -1.007276
+    },
+    {
+      "id": "neg_2",
+      "name": "[M-2H]2-",
+      "mode": "negative",
+      "charge": 2,
+      "multimer": 1,
+      "mz_offset": -1.007276
+    },
+    {
+      "id": "neg_3",
+      "name": "[M-H2O-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": -19.01839
+    },
+    {
+      "id": "neg_4",
+      "name": "[M-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": -1.007276
+    },
+    {
+      "id": "neg_5",
+      "name": "[M+Na-2H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 20.974666
+    },
+    {
+      "id": "neg_6",
+      "name": "[M+Cl]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 34.969402
+    },
+    {
+      "id": "neg_7",
+      "name": "[M+K-2H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 36.948606
+    },
+    {
+      "id": "neg_8",
+      "name": "[M+FA-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 44.998201
+    },
+    {
+      "id": "neg_9",
+      "name": "[M+Hac-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 59.013851
+    },
+    {
+      "id": "neg_10",
+      "name": "[M+Br]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 78.918885
+    },
+    {
+      "id": "neg_11",
+      "name": "[M+TFA-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 1,
+      "mz_offset": 112.985586
+    },
+    {
+      "id": "neg_12",
+      "name": "[2M-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": -1.007276
+    },
+    {
+      "id": "neg_13",
+      "name": "[2M+FA-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": 44.998201
+    },
+    {
+      "id": "neg_14",
+      "name": "[2M+Hac-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 2,
+      "mz_offset": 59.013851
+    },
+    {
+      "id": "neg_15",
+      "name": "[3M-H]-",
+      "mode": "negative",
+      "charge": 1,
+      "multimer": 3,
+      "mz_offset": -1.007276
+    }
+  ]
+}

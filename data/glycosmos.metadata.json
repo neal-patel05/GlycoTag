@@ -1,0 +1,34 @@
+{
+  "source": "https://download.glycosmos.org/glycosmos_glycans_list.csv",
+  "license": "CC BY 4.0",
+  "attribution": "GlyCosmos Portal",
+  "retrieved": "2026-10-26",
+  "sha256": "d112de4626b3f7e78925a8fbb0a47c427355bcade91ba8751159fdaab972360c",
+  "total": 257024,
+  "supported": 116089,
+  "unavailable": 140935,
+  "taxonomy_annotated": 21689,
+  "taxonomy_unannotated": 235335,
+  "taxonomy_count": 2027,
+  "taxonomy_source_field": "Taxonomy",
+  "mass_source": "https://web.expasy.org/glycanmass/",
+  "residues": {
+    "Hex": "162.0528",
+    "HexNAc": "203.0794",
+    "Deoxyhex": "146.0579",
+    "Pent": "132.0423",
+    "HexA": "176.03209",
+    "KDN": "250.0689",
+    "NeuAc": "291.0954",
+    "NeuGc": "307.0903",
+    "Phos": "79.9663",
+    "Sulph": "79.9568"
+  },
+  "unavailable_reasons": {
+    "Substituent is outside the supported ExPASy inputs.": 64556,
+    "Sugar chemistry or reducing end is outside the supported ExPASy inputs.": 53546,
+    "Missing or variable composition / repeating structure; no fixed ExPASy mass.": 10115,
+    "Cyclic or modified inter-residue bonds are not supported by this mass model.": 12576,
+    "Composition mass disagrees with the source; review this structure manually.": 142
+  }
+}
